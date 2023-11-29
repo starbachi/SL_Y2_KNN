@@ -1,50 +1,41 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 
-
-
 public class kNN1 {
 
     public static void main(String[] args) throws FileNotFoundException {
-        readFile();
+        parseData();
     }
 
 
+    /*
+     * Parses String data to Float and creates a 2D ArrayList
+     * 
+     * @return 2D ArrayList containing data parsed to float
+     */
+    public static ArrayList<ArrayList<Float>> parseData() throws FileNotFoundException {
 
-
-    public static ArrayList<String> readFile() throws FileNotFoundException {
-
-        ArrayList<String> dataArr = new ArrayList<String>();
+        ArrayList<ArrayList<Float>> dataArray = new ArrayList<>();
         File dataFile = new File("train_data.txt");
-        
-        Scanner dataReader = new Scanner(dataFile);
+        Scanner dataScanner = new Scanner(dataFile);
 
-        while (dataReader.hasNextLine()) {
-            dataArr.add(dataReader.nextLine());
+        while (dataScanner.hasNextLine()) {
+            dataArray.add(new ArrayList<>(Arrays.asList(
+                    Arrays.stream(dataScanner.nextLine().split(" ")).map(Float::valueOf).toArray(Float[]::new))));
         }
-        dataReader.close();
+        dataScanner.close();
 
-        ArrayList<String> labelArr = new ArrayList<String>();
-        File labelFile = new File("train_label.txt");
-        
-        Scanner labelReader = new Scanner(labelFile);
-
-        while (labelReader.hasNext()) {
-            labelArr.add(labelReader.next());
-            System.out.println(labelReader.next());
-        }
-        labelReader.close();
-
-
-
-        return dataArr;
+        return dataArray;
     }
+
+    ArrayList<Integer> labelArr = new ArrayList<>();
+    File labelFile = new File("train_label.txt");
+    Scanner labelReader = new Scanner(labelFile);while(labelReader.hasNext())
+    {
+        labelArr.add(Integer.parseInt(labelReader.next()));
+    }labelReader.close();
+
 }
-
-
-
-
-
-    
