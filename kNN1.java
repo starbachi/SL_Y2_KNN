@@ -13,8 +13,10 @@ public class kNN1 {
         ArrayList<ArrayList<Float>> testDataArray = new ArrayList<>(parseData(new File("test_data.txt")));
         ArrayList<Integer> trainLabelArray = new ArrayList<>(parseLabel(new File("train_label.txt")));
         ArrayList<Integer> testLabelArray = new ArrayList<>(parseLabel(new File("test_label.txt")));
-        ArrayList<ArrayList<Double>> euclideanDistances = new ArrayList<>(calculateEuclidean(testDataArray, trainDataArray, "output.txt"));
-        System.out.println(euclideanDistances.toString());
+        ArrayList<ArrayList<Double>> euclideanDistances = new ArrayList<>(
+                calculateEuclidean(testDataArray, trainDataArray, "output.txt"));
+        // System.out.println(euclideanDistances.toString());
+        System.out.println(findIndex(euclideanDistances, trainLabelArray));
     }
 
     /*
@@ -48,21 +50,30 @@ public class kNN1 {
         return labelArr;
     }
 
-    private static ArrayList<ArrayList<Double>> calculateEuclidean(ArrayList<ArrayList<Float>> testInput, ArrayList<ArrayList<Float>> trainInput, String outputFileName) {
+    private static ArrayList<ArrayList<Double>> calculateEuclidean(ArrayList<ArrayList<Float>> testInput,ArrayList<ArrayList<Float>> trainInput, String outputFileName) {
         ArrayList<ArrayList<Double>> distances = new ArrayList<>();
-            ArrayList<Double> innerArr;
-            for(int i = 0; i < testInput.size(); i++) {
-                innerArr = new ArrayList<>();
-                for(int j = 0; j < trainInput.size(); j++) {
-                    double sum = 0;
-                    for (int k = 0; k < testInput.get(i).size(); k++) {
-                        sum +=  Math.pow(testInput.get(i).get(k) - trainInput.get(j).get(k), 2);
-                    }
-                    innerArr.add(Math.sqrt(sum));
+        ArrayList<Double> innerArr;
+        for (int i = 0; i < testInput.size(); i++) {
+            innerArr = new ArrayList<>();
+            for (int j = 0; j < trainInput.size(); j++) {
+                double sum = 0;
+                for (int k = 0; k < testInput.get(i).size(); k++) {
+                    sum += Math.pow(testInput.get(i).get(k) - trainInput.get(j).get(k), 2);
                 }
-                distances.add(innerArr);
+                innerArr.add(Math.sqrt(sum));
             }
+            distances.add(innerArr);
+        }
         return distances;
+    }
+
+    public static ArrayList<Integer> findIndex(ArrayList<ArrayList<Double>> inputArr, ArrayList<Integer> labels) {
+        ArrayList<Integer> indices = new ArrayList<>();
+        for (ArrayList<Double> innerArr : inputArr) {
+            int minIndex = labels.get(innerArr.indexOf(Collections.min(innerArr)));
+            indices.add(minIndex);
+        }
+        return indices;
     }
 
 }
