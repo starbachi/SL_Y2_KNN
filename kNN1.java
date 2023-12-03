@@ -13,14 +13,13 @@ public class kNN1 {
         ArrayList<ArrayList<Float>> testDataArray = new ArrayList<>(parseData(new File("test_data.txt")));
         ArrayList<Integer> trainLabelArray = new ArrayList<>(parseLabel(new File("train_label.txt")));
         ArrayList<Integer> testLabelArray = new ArrayList<>(parseLabel(new File("test_label.txt")));
-        ArrayList<ArrayList<Double>> euclideanDistances = new ArrayList<>(
-                calculateEuclidean(testDataArray, trainDataArray, "output.txt"));
-        // System.out.println(euclideanDistances.toString());
-        System.out.println(findIndex(euclideanDistances, trainLabelArray));
+        ArrayList<ArrayList<Double>> euclideanDistances = new ArrayList<>(calculateEuclidean(testDataArray, trainDataArray));
+        System.out.println(predictLabel(euclideanDistances, trainLabelArray));
     }
 
-    /*
-     * Parses @param file to float and creates a 2D ArrayList of features
+    /**
+     * Parses file to float and creates a 2D ArrayList of features
+     * @param file Train and test data to parse
      */
     public static ArrayList<ArrayList<Float>> parseData(File file) throws FileNotFoundException {
 
@@ -35,7 +34,7 @@ public class kNN1 {
         return dataArray;
     }
 
-    /*
+    /**
      * Parses String labels to Integer and creates an ArrayList<Integer>
      * 
      * @return An ArrayList<Integer> containing labels consisting of 0 and 1
@@ -50,7 +49,12 @@ public class kNN1 {
         return labelArr;
     }
 
-    private static ArrayList<ArrayList<Double>> calculateEuclidean(ArrayList<ArrayList<Float>> testInput,ArrayList<ArrayList<Float>> trainInput, String outputFileName) {
+    /**
+     * Calculates the Euclidean distance of every test pattern to all training patterns
+     * @param   testInput Test Patterns
+     * @param   trainInput Train Patterns
+     */
+    private static ArrayList<ArrayList<Double>> calculateEuclidean(ArrayList<ArrayList<Float>> testInput,ArrayList<ArrayList<Float>> trainInput) {
         ArrayList<ArrayList<Double>> distances = new ArrayList<>();
         ArrayList<Double> innerArr;
         for (int i = 0; i < testInput.size(); i++) {
@@ -67,13 +71,19 @@ public class kNN1 {
         return distances;
     }
 
-    public static ArrayList<Integer> findIndex(ArrayList<ArrayList<Double>> inputArr, ArrayList<Integer> labels) {
-        ArrayList<Integer> indices = new ArrayList<>();
+    /**
+     * Finds the label of the nearest neighbour
+     * @param inputArr ArrayList containing calculated distances
+     * @param labels ArrayList of labels
+     * @return  ArrayList of predictions
+     */
+    public static ArrayList<Integer> predictLabel(ArrayList<ArrayList<Double>> inputArr, ArrayList<Integer> labels) {
+        ArrayList<Integer> predictions = new ArrayList<>();
         for (ArrayList<Double> innerArr : inputArr) {
             int minIndex = labels.get(innerArr.indexOf(Collections.min(innerArr)));
-            indices.add(minIndex);
+            predictions.add(minIndex);
         }
-        return indices;
+        return predictions;
     }
 
 }
