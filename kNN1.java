@@ -12,7 +12,7 @@ import java.util.stream.IntStream;
 
 /**
  * @author Erdem Elik
- * @version 0.9
+ * @version 1
  *
  */
 
@@ -24,7 +24,7 @@ public class kNN1 {
         ArrayList<Integer> trainLabelArray = new ArrayList<>(parseLabel(new File("train_label.txt")));
         ArrayList<Integer> testLabelArray = new ArrayList<>(parseLabel(new File("test_label.txt")));
         ArrayList<ArrayList<Double>> euclideanDistances = new ArrayList<>(calculateEuclidean(testDataArray, trainDataArray));
-        System.out.println(calculateAccuracy(predictLabel(calculateEuclidean(trainDataArray, testDataArray),trainLabelArray),testLabelArray).toString());
+        System.out.println(calculateAccuracy(predictLabel(euclideanDistances,trainLabelArray),testLabelArray).toString());
     }
 
     /**
@@ -61,8 +61,8 @@ public class kNN1 {
 
     /**
      * Calculates the Euclidean distance of every test pattern to all training patterns
-     * @param   testInput Test Patterns
-     * @param   trainInput Train Patterns
+     * @param testInput Test Patterns
+     * @param trainInput Train Patterns
      */
     private static ArrayList<ArrayList<Double>> calculateEuclidean(ArrayList<ArrayList<Float>> testInput,ArrayList<ArrayList<Float>> trainInput) {
         ArrayList<ArrayList<Double>> distances = new ArrayList<>();
@@ -85,7 +85,7 @@ public class kNN1 {
      * Finds the label of the nearest neighbour
      * @param inputArr ArrayList containing calculated distances
      * @param labels ArrayList of labels
-     * @return  ArrayList of predictions
+     * @return ArrayList of predictions
      */
     public static ArrayList<Integer> predictLabel(ArrayList<ArrayList<Double>> inputArr, ArrayList<Integer> labels) {
         ArrayList<Integer> predictions = new ArrayList<>();
@@ -107,8 +107,8 @@ public class kNN1 {
      * Compares predictions and actual labels to calculate the accuracy of the model 
      * 
      * @param predictions Prediction labels
-     * @param actuals   Test labels
-     * @return  Accuracy of the predictions
+     * @param actuals Test labels
+     * @return Accuracy of the predictions
      */
     public static Double calculateAccuracy (ArrayList<Integer> predictions, ArrayList<Integer> actuals) {
         return (double) IntStream.range(0, actuals.size()).filter(i -> actuals.get(i).equals(predictions.get(i))).count() / actuals.size() * 100;
