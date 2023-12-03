@@ -1,3 +1,4 @@
+    
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -6,8 +7,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.Scanner;
 import java.util.stream.IntStream;
+
+
+
+public class kNN2 {
 
 
 /**
@@ -15,18 +21,17 @@ import java.util.stream.IntStream;
  * @version 1
  *
  */
-
-public class kNN1 {
     
     public static void main(String[] args) throws FileNotFoundException {
+        DecimalFormat twoDP = new DecimalFormat("###.####");
         ArrayList<ArrayList<Float>> trainDataArray = new ArrayList<>(parseData(new File("train_data.txt")));
         ArrayList<ArrayList<Float>> testDataArray = new ArrayList<>(parseData(new File("test_data.txt")));
         ArrayList<Integer> trainLabelArray = new ArrayList<>(parseLabel(new File("train_label.txt")));
         ArrayList<Integer> testLabelArray = new ArrayList<>(parseLabel(new File("test_label.txt")));
         ArrayList<ArrayList<Double>> euclideanDistances = new ArrayList<>(calculateEuclidean(testDataArray, trainDataArray));
-        ArrayList<Integer> predictions = predictLabel(euclideanDistances, trainLabelArray);
-        Double accuracy = calculateAccuracy(predictions,testLabelArray);
-        System.out.println(accuracy.toString());
+        ArrayList<ArrayList<Double>> manhattanDistances = new ArrayList<>(calculateManhattan(testDataArray, trainDataArray));
+        System.out.println("Euclidean says: " + twoDP.format(calculateAccuracy(predictLabel(euclideanDistances,trainLabelArray),testLabelArray)) + "%");
+        System.out.println("Manhattan says: " + twoDP.format(calculateAccuracy(predictLabel(manhattanDistances,trainLabelArray),testLabelArray)) + "%");
     }
 
     /**
@@ -63,8 +68,10 @@ public class kNN1 {
 
     /**
      * Calculates the Euclidean distance of every test pattern to all training patterns
+     * 
      * @param testInput Test Patterns
      * @param trainInput Train Patterns
+     * @return 2D ArrayList of Euclidean distances
      */
     private static ArrayList<ArrayList<Double>> calculateEuclidean(ArrayList<ArrayList<Float>> testInput,ArrayList<ArrayList<Float>> trainInput) {
         ArrayList<ArrayList<Double>> distances = new ArrayList<>();
@@ -82,6 +89,32 @@ public class kNN1 {
         }
         return distances;
     }
+
+    /**
+     * Calculates the Manhattan distance of every test pattern to all training patterns
+     * 
+     * @param testInput Test Patterns
+     * @param trainInput Train Patterns
+     * @return 2D ArrayList of Manhattan distances
+     */
+    private static ArrayList<ArrayList<Double>> calculateManhattan(ArrayList<ArrayList<Float>> testInput,ArrayList<ArrayList<Float>> trainInput) {
+        ArrayList<ArrayList<Double>> distances = new ArrayList<>();
+        ArrayList<Double> innerArr;
+        
+        for (int i = 0; i < testInput.size(); i++) {
+            innerArr = new ArrayList<>();
+            for (int j = 0; j < trainInput.size(); j++) {
+                double sum = 0;
+                for (int k = 0; k < testInput.get(i).size(); k++) {
+                    sum += Math.abs(testInput.get(i).get(k) - trainInput.get(j).get(k));
+                }
+                innerArr.add(sum);
+            }
+            distances.add(innerArr);
+        }
+        return distances;
+    }
+
 
     /**
      * Finds the label of the nearest neighbour
