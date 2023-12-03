@@ -1,20 +1,30 @@
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Scanner;
+import java.util.stream.IntStream;
+
+
+/**
+ * @author Erdem Elik
+ * @version 0.9
+ *
+ */
 
 public class kNN1 {
-
+    
     public static void main(String[] args) throws FileNotFoundException {
         ArrayList<ArrayList<Float>> trainDataArray = new ArrayList<>(parseData(new File("train_data.txt")));
         ArrayList<ArrayList<Float>> testDataArray = new ArrayList<>(parseData(new File("test_data.txt")));
         ArrayList<Integer> trainLabelArray = new ArrayList<>(parseLabel(new File("train_label.txt")));
         ArrayList<Integer> testLabelArray = new ArrayList<>(parseLabel(new File("test_label.txt")));
         ArrayList<ArrayList<Double>> euclideanDistances = new ArrayList<>(calculateEuclidean(testDataArray, trainDataArray));
-        System.out.println(predictLabel(euclideanDistances, trainLabelArray));
+        System.out.println(calculateAccuracy(predictLabel(calculateEuclidean(trainDataArray, testDataArray),trainLabelArray),testLabelArray).toString());
     }
 
     /**
@@ -83,7 +93,25 @@ public class kNN1 {
             int minIndex = labels.get(innerArr.indexOf(Collections.min(innerArr)));
             predictions.add(minIndex);
         }
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("output1.txt"))) {
+            writer.write(predictions.toString());
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
         return predictions;
+
+    }
+
+    /**
+     * Compares predictions and actual labels to calculate the accuracy of the model 
+     * 
+     * @param predictions Prediction labels
+     * @param actuals   Test labels
+     * @return  Accuracy of the predictions
+     */
+    public static Double calculateAccuracy (ArrayList<Integer> predictions, ArrayList<Integer> actuals) {
+        return (double) IntStream.range(0, actuals.size()).filter(i -> actuals.get(i).equals(predictions.get(i))).count() / actuals.size() * 100;
     }
 
 }
