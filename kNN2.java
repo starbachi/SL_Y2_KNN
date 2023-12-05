@@ -8,9 +8,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.stream.IntStream;
@@ -31,30 +29,9 @@ public class kNN2 {
         final List<Integer> trainLabel = new ArrayList<>(parseLabel(new File("train_label.txt")));
         final List<Integer> testLabel = new ArrayList<>(parseLabel(new File("test_label.txt")));
 
-        // Will contain labels and data paired
-        Map<Integer, List<List<Float>>> trainPairsMap = new HashMap<>();
-        Map<Integer, List<List<Float>>> testPairsMap = new HashMap<>();
-
-        // Simply contains all "0" labeled trainData in index 0 and all "1" labeled in
-        // index 1
-        List<List<List<Float>>> trainDataGrouped = groupAllData(trainLabel, trainData);
-        trainPairsMap.put(0, trainDataGrouped.get(0));
-        trainPairsMap.put(1, trainDataGrouped.get(1));
-
-        // Simply contains all "0" labeled testData in index 0 and all "1" labeled in
-        // index 1
-        List<List<List<Float>>> testDataGrouped = groupAllData(testLabel, testData);
-        testPairsMap.put(0, testDataGrouped.get(0));
-        testPairsMap.put(1, testDataGrouped.get(1));
-
-        // System.out.println("Euclidean: " + calculateAccuracy(euclideanPredictedLabels,
-        //         testLabel) + "%");
-        // System.out.println("Manhattan: " + formatter.format(calculateAccuracy(manhattanPredictedLabels,
-        //         testLabel)) + "%");
-
         List<String> chromosomeSet = generateInitialPopulation(5, testData.get(0).size());
 
-        System.out.println((calculateGeneticAlgorithm(testData, trainData, testLabel, trainLabel, chromosomeSet, 98.0)));
+        calculateGeneticAlgorithm(testData, trainData, testLabel, trainLabel, chromosomeSet, 98.0);
 
     }
 
@@ -102,42 +79,6 @@ public class kNN2 {
     ////////////////////////////////////////////////
     //////////////// END OF PARSING ////////////////
     ////////////////////////////////////////////////
-
-    ///////////////////////////////////////////////
-    //////////////// DATA GROUPING ////////////////
-    ///////////////////////////////////////////////
-
-    /**
-     * Iterates through the dataSet, matching each index with the corresponding
-     * entry in "labelSet" to determine the appropriate group for adding Lists of
-     * floats.
-     * //FIXME: HARDCODED
-     * 
-     * @param labelSet contains the labels
-     * @param dataSet  contains the data
-     * @return 3D List of float with index 0 being the "0" labeled group and index 1
-     *         being the "1" labeled group
-     */
-    public static List<List<List<Float>>> groupAllData(List<Integer> labelSet, List<List<Float>> dataSet) {
-        List<List<Float>> ListOf0 = new ArrayList<>();
-        List<List<Float>> ListOf1 = new ArrayList<>();
-        List<List<List<Float>>> ListOfBoth = new ArrayList<>();
-        for (int i = 0; i < labelSet.size() && i < dataSet.size(); i++) {
-            if (labelSet.get(i) == 0)
-                ListOf0.add(dataSet.get(i));
-            else if (labelSet.get(i) == 1) {
-                ListOf1.add(dataSet.get(i));
-            }
-        }
-
-        ListOfBoth.add(ListOf0);
-        ListOfBoth.add(ListOf1);
-        return ListOfBoth;
-    }
-
-    //////////////////////////////////////////////////////////////
-    //////////////// DATA IS READY FOR PROCESSING ////////////////
-    //////////////////////////////////////////////////////////////
 
     //////////////////////////////////////////////
     //////////////// CALCULATIONS ////////////////
@@ -214,6 +155,7 @@ public class kNN2 {
     //////////////// END OF CALCULATIONS ////////////////
     /////////////////////////////////////////////////////
 
+    
     /////////////////////////////////////////////////////////////
     //////////////// PREDICTIONS & FILE PRINTING ////////////////
     /////////////////////////////////////////////////////////////
@@ -279,10 +221,10 @@ public class kNN2 {
     }
 
     /**
-     * //TODO:
+     * Finds and returns the indices of 1's in param chromosomeSet
      * 
-     * @param chromosomeSet
-     * @return
+     * @param chromosomeSet Contains arbitrary number of binary strings of arbitrary length
+     * @return 2D List of Integers with inner List containing the indices of 1's per binary string
      */
     public static List<List<Integer>> findIndicesofOnes(List<String> chromosomeSet) {
 
@@ -302,12 +244,11 @@ public class kNN2 {
     }
 
     /**
-     * //TODO:
+     * Use this after with findIndicesOfOnes to get the feature columns indicated the indices returned by findIndicesOfOnes
      * 
-     * @param list
-     * @param testSet
-     * @param trainSet
-     * @return
+     * @param indices List of indices, which will be used to retrieve the suggested columns of data from param dataSet
+     * @param dataSet preferably trainData and testData
+     * @return 2D List of Floats representing the new trainData and testData consisting of columns specified by the indices in param indices
      */
     public static List<List<Float>> retrieveDataFromBinaryString(List<Integer> indices, List<List<Float>> dataSet) {
         List<List<Float>> retrievedPattern = new ArrayList<>();
@@ -322,15 +263,17 @@ public class kNN2 {
     }
 
     /**
+     * Initially, feeds itself with the chromosomeSet. Later on, calls chromosomeMutator() to randomly mutate the fittest chromosome
+     * and feed itself with the mutated chromosome. Loops this until param accuracyThreshold has been met or passed
      * 
-     * @param testSet
-     * @param trainSet
-     * @param testLabel
-     * @param trainLabel
-     * @param chromosomeSet
-     * @return
+     * @param testSet 2D List of test patterns
+     * @param trainSet 2D List of train patterns
+     * @param testLabel List of Integers labeling testSet
+     * @param trainLabel List of Integers labeling trainSet
+     * @param chromosomeSet List of Strings containing binary string produced by generateInitalPopulation(), has arbitrary size and length
+     * @param accuracyThreshold Threshold to meet while iterating
      */
-    public static Double calculateGeneticAlgorithm(List<List<Float>> testSet, List<List<Float>> trainSet, List<Integer> testLabel, List<Integer> trainLabel, List<String> chromosomeSet, double accuracyThreshold) {
+    public static void calculateGeneticAlgorithm(List<List<Float>> testSet, List<List<Float>> trainSet, List<Integer> testLabel, List<Integer> trainLabel, List<String> chromosomeSet, double accuracyThreshold) {
         final List<List<Float>> localTestSet = new ArrayList<>(testSet);
         final List<List<Float>> localTrainSet = new ArrayList<>(trainSet);
         NumberFormat formatter = new DecimalFormat("###.0");
@@ -341,9 +284,11 @@ public class kNN2 {
 
         
         double generationSuccessPercentage = 0;
-        
+        String bestChromosome = "";
+        List<Double> listOfResults = new ArrayList<>();
+
         while(generationSuccessPercentage < accuracyThreshold) {
-            List<Double> listOfResults = new ArrayList<>();
+            listOfResults =  new ArrayList<>();
             List<List<Float>> modifiedTestSet; 
             List<List<Float>> modifiedTrainSet;
         
@@ -353,11 +298,10 @@ public class kNN2 {
         
                 Double result = shortcutManhattan(modifiedTestSet, modifiedTrainSet, testLabel, trainLabel);
                 listOfResults.add(result);
-                // System.out.println("Binary String: " + chromosomeSet[i] + " causes accuracy of " + result + "%");
             }
         
             int bestIndex = listOfResults.indexOf(Collections.max(listOfResults));
-            String bestChromosome = newGen.get(bestIndex);
+            bestChromosome = newGen.get(bestIndex);
         
             newGen = chromosomeMutator(bestChromosome, 4, 2);
             indices = findIndicesofOnes(newGen);
@@ -366,33 +310,32 @@ public class kNN2 {
             modifiedTestSet = retrieveDataFromBinaryString(indices.get(bestIndex), localTestSet);
             modifiedTrainSet = retrieveDataFromBinaryString(indices.get(bestIndex), localTrainSet);
             generationSuccessPercentage = shortcutManhattan(modifiedTestSet, modifiedTrainSet, testLabel, trainLabel);
-        
-            System.out.println("Best is " + bestChromosome + " with " + formatter.format(Collections.max(listOfResults)) + "%");
+            
             generationSuccessPercentage = Collections.max(listOfResults);
         }
-        return generationSuccessPercentage;
+        System.out.println("Best is " + bestChromosome + " with " + formatter.format(Collections.max(listOfResults)) + "%");
+        // return generationSuccessPercentage;
     }
         
 
     /**
-     * 
-     * @param chromosome1
-     * @param chromosome2
-     * @param offSpringCount
-     * @param mutationCount
-     * @return
+     * Mutates param chromosome randomly and returns it
+     * @param chromosome Preferably fittest binary chromosome with arbitrary length
+     * @param offSpringCount Number of offsprings to produce
+     * @param mutationCount Number of mutation apply to chromosome
+     * @return a list of size param offSpringCount containing new chromosomes (binary strings)
      */
-    public static List<String> chromosomeMutator(String chromosome1, int offSpringCount, int mutationCount) {
+    public static List<String> chromosomeMutator(String chromosome, int offSpringCount, int mutationCount) {
 
         List<String> nextGenerationChromosomes = new ArrayList<>();
         Random rand = new Random();
         
         for (int i = 0; i < offSpringCount; i++) {
-            String c1 = chromosome1;
+            String c1 = chromosome;
             
             for (int j = 0; j < mutationCount; j++) {
                 
-                int length = chromosome1.length();
+                int length = chromosome.length();
                 int crossoverPointStart = rand.nextInt(5, length / 2);
                 int crossoverPointEnd = rand.nextInt(crossoverPointStart,length);
                 String c2 = generateInitialPopulation(1, crossoverPointEnd - crossoverPointStart).get(0);
