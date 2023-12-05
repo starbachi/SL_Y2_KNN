@@ -24,7 +24,7 @@ public class kNN2 {
 
     public static void main(String[] args) throws FileNotFoundException {
 
-        NumberFormat formatter = new DecimalFormat("###.##");     
+        NumberFormat formatter = new DecimalFormat("###.##");
 
         // Data Parsed
         final List<List<Float>> trainData = new ArrayList<>(parseData(new File("train_data.txt")));
@@ -57,14 +57,13 @@ public class kNN2 {
                 predictLabel(calculateManhattanDistances(testData, trainData), trainLabel));
 
         System.out.println("Euclidean: " + calculateAccuracy(euclideanPredictedLabels,
-        testLabel) + "%");
+                testLabel) + "%");
         System.out.println("Manhattan: " + formatter.format(calculateAccuracy(manhattanPredictedLabels,
-        testLabel)) + "%");
+                testLabel)) + "%");
 
         String[] chromosomeSet = generateInitialPopulation(5, testData.get(0).size());
 
-        calculateGeneticAlgorithm(testData, trainData, testLabel, trainLabel, chromosomeSet);
-
+        formatter.format(calculateGeneticAlgorithm(testData, trainData, testLabel, trainLabel, chromosomeSet));
 
     }
 
@@ -161,7 +160,8 @@ public class kNN2 {
      * @param trainSet Train Patterns
      * @return 2D List of Euclidean distances
      */
-    private static List<List<Float>> calculateEuclideanDistances(List<List<Float>> testInput,List<List<Float>> trainInput) {
+    private static List<List<Float>> calculateEuclideanDistances(List<List<Float>> testInput,
+            List<List<Float>> trainInput) {
         List<List<Float>> distances = new ArrayList<>();
         List<Float> innerArr;
         for (int i = 0; i < testInput.size(); i++) {
@@ -183,10 +183,11 @@ public class kNN2 {
      * patterns
      * 
      * @param testInput 2D List of test patterns
-     * @param trainMap     Map of the train patterns
+     * @param trainMap  Map of the train patterns
      * @return 2D List of Manhattan distances
      */
-    private static List<List<Float>> calculateManhattanDistances(List<List<Float>> testInput, List<List<Float>> trainInput) {
+    private static List<List<Float>> calculateManhattanDistances(List<List<Float>> testInput,
+            List<List<Float>> trainInput) {
         List<List<Float>> distances = new ArrayList<>();
         List<Float> innerArr;
         for (int i = 0; i < testInput.size(); i++) {
@@ -196,7 +197,7 @@ public class kNN2 {
                 for (int k = 0; k < testInput.get(i).size(); k++) {
                     sum += Math.abs(testInput.get(i).get(k) - trainInput.get(j).get(k));
                 }
-                innerArr.add((float)sum);
+                innerArr.add((float) sum);
             }
             distances.add(innerArr);
         }
@@ -248,14 +249,13 @@ public class kNN2 {
         return predictions;
 
     }
-    
-    
 
     //////////////////////////////////////////////////////////
     //////////////// BINARY GENETIC ALGORITHM ////////////////
     //////////////////////////////////////////////////////////
 
-    public static Double shortcut (List<List<Float>> testData, List<List<Float>> trainData, List<Integer> testLabel, List<Integer> trainLabel) {
+    public static Double shortcut(List<List<Float>> testData, List<List<Float>> trainData, List<Integer> testLabel,
+            List<Integer> trainLabel) {
         return calculateAccuracy(predictLabel(calculateEuclideanDistances(testData, trainData), trainLabel), testLabel);
     }
 
@@ -266,61 +266,88 @@ public class kNN2 {
      * @param trainSet
      * @param chromosomeSet
      */
-    public static Double calculateGeneticAlgorithm(List<List<Float>> testSet, List<List<Float>> trainSet, List<Integer> testLabel, List<Integer> trainLabel, String[] chromosomeSet) {
+    public static Double calculateGeneticAlgorithm(List<List<Float>> testSet, List<List<Float>> trainSet,
+            List<Integer> testLabel, List<Integer> trainLabel, String[] chromosomeSet) {
         final List<List<Float>> localTestSet = new ArrayList<>(testSet);
         final List<List<Float>> localTrainSet = new ArrayList<>(trainSet);
+
+        String[] newGen = new String[chromosomeSet.length];
+        for(int i = 0; i < chromosomeSet.length; i++){
+            newGen[i] = chromosomeSet[i];
+        }
 
         List<List<Integer>> indices = new ArrayList<>(findIndicesofOnes(chromosomeSet));
 
         
-
-        /////////// FILE PRINT ///////////
-
-       Double result = 0.0;
-
-        for (int i = 0; i < indices.size(); i++) {
-            List<List<Float>> modifiedTestSet = new ArrayList<>();
+        double generationSuccessPercentage = 0;
+        
+        while(generationSuccessPercentage < 80.0) {
+            List<Double> listOfResults = new ArrayList<>();
+            List<List<Float>> modifiedTestSet = new ArrayList<>(); 
             List<List<Float>> modifiedTrainSet = new ArrayList<>();
-
-            modifiedTestSet = retrieveDataFromBinaryString(indices.get(i), localTestSet); // Ready for distance measuring
-            modifiedTrainSet = retrieveDataFromBinaryString(indices.get(i), localTrainSet); // Ready for distance measuring
-
-            List<List<Float>> euclideanOfGeneration = calculateEuclideanDistances(modifiedTestSet, modifiedTrainSet);
-            List<List<Float>> manhattanOfGeneration = calculateManhattanDistances(modifiedTestSet, modifiedTrainSet);
-
-
-            try (
-            BufferedWriter writer = new BufferedWriter(new FileWriter("aa\\modTest" + i + ".txt"))) {
-            for (List<Float> innerList : modifiedTestSet) {
-                for (Float value : innerList) {
-                        writer.write(value + " ");
-                    }
-                    writer.newLine();
-                }
-                writer.newLine();
-            } catch (IOException e) {
-            e.printStackTrace();
+        
+            for (int i = 0; i < indices.size(); i++) {
+                
+                Double result = 0.0;
+                modifiedTestSet = retrieveDataFromBinaryString(indices.get(i), localTestSet); // Ready for distance measuring
+                modifiedTrainSet = retrieveDataFromBinaryString(indices.get(i), localTrainSet); // Ready for distance measuring
+                
+                result = shortcut(modifiedTestSet, modifiedTrainSet, testLabel, trainLabel);
+                listOfResults.add(result);
+                // System.out.println("Binary String: " + chromosomeSet[i] + " causes accuracy of " + result + "%");
+                
             }
-
-
-            try (
-            BufferedWriter writer = new BufferedWriter(new FileWriter("aa\\modTrain" + i + ".txt"))) {
-
-            for (List<Float> innerList : modifiedTrainSet) {
-                for (Float value : innerList) {
-                        writer.write(value + " ");
-                    }
-                    writer.newLine();
-                }
-                writer.newLine();
-            } catch (IOException e) {
-            e.printStackTrace();
-            }
-            result = shortcut(modifiedTestSet, modifiedTrainSet, testLabel, trainLabel);
-            System.out.println("Binary String: " + chromosomeSet[i] + " causes accuracy of " + result + "%");
+            String bestChromosome = newGen[listOfResults.indexOf(Collections.max(listOfResults))];
+            String worstChromosome = newGen[listOfResults.indexOf(Collections.min(listOfResults))];
+            
+            newGen = chromosomeMutator(bestChromosome, worstChromosome, 4, 2);
+            indices = findIndicesofOnes(newGen);
+            retrieveDataFromBinaryString(trainLabel, modifiedTrainSet);
+            System.out.println("Best is " + bestChromosome + " with " + Collections.max(listOfResults) + "%");
+            generationSuccessPercentage = shortcut(modifiedTestSet, modifiedTrainSet, testLabel, trainLabel);
         }
-        return result;
+
+
+
+
+        
+
+
+        return generationSuccessPercentage;
     }
+
+    public static String[] chromosomeMutator(String chromosome1, String chromosome2, int offSpringCount, int mutationCount) {
+
+        String[] nextGenerationChromosomes = new String[offSpringCount];
+        List<String> nextGenList = new ArrayList<>();
+        Random rand = new Random();
+    
+        for (int i = 0; i < offSpringCount; i++) {
+            String c1 = chromosome1;
+            String c2 = chromosome2;
+            for (int j = 0; j < mutationCount; j++) {
+                
+                int minMax = Math.min(chromosome1.length(), chromosome2.length());
+                int crossoverPointStart = rand.nextInt(5, minMax / 2);
+                int crossoverPointEnd = rand.nextInt(crossoverPointStart,minMax);
+                c1 = c1.substring(0, crossoverPointStart) + c2.substring(crossoverPointStart, crossoverPointEnd) + c1.substring(crossoverPointEnd);
+                c2 = c2.substring(0, crossoverPointStart) + c1.substring(crossoverPointStart, crossoverPointEnd) + c2.substring(crossoverPointEnd);
+            }
+                
+            nextGenList.add(c1);
+            nextGenList.add(c2);
+        }
+    
+        nextGenerationChromosomes = nextGenList.toArray(new String[0]);
+        for(String str : nextGenerationChromosomes){
+            System.out.println(str);
+        }
+
+        
+        return nextGenerationChromosomes;
+    }
+    
+
 
 
     /**
@@ -343,11 +370,8 @@ public class kNN2 {
             }
             binaryStrings[i] = binaryString.toString();
         }
-
         return binaryStrings;
-
     }
-
 
     /**
      * //TODO:
@@ -391,9 +415,52 @@ public class kNN2 {
         }
         return retrievedPattern;
     }
-    
 
 
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            /////////// FILE PRINT ///////////
+            // try (
+            //         BufferedWriter writer = new BufferedWriter(new FileWriter("aa\\modTest" + i + ".txt"))) {
+            //     for (List<Float> innerList : modifiedTestSet) {
+            //         for (Float value : innerList) {
+            //             writer.write(value + " ");
+            //         }
+            //         writer.newLine();
+            //     }
+            //     writer.newLine();
+            // } catch (IOException e) {
+            //     e.printStackTrace();
+            // }
+
+            // try (
+            //         BufferedWriter writer = new BufferedWriter(new FileWriter("aa\\modTrain" + i + ".txt"))) {
+
+            //     for (List<Float> innerList : modifiedTrainSet) {
+            //         for (Float value : innerList) {
+            //             writer.write(value + " ");
+            //         }
+            //         writer.newLine();
+            //     }
+            //     writer.newLine();
+            // } catch (IOException e) {
+            //     e.printStackTrace();
+            // }
+            //////////////////////////////////
 
 }
