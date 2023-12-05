@@ -3,6 +3,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -21,6 +23,8 @@ public class kNN2 {
      */
 
     public static void main(String[] args) throws FileNotFoundException {
+
+        NumberFormat formatter = new DecimalFormat("###.##");     
 
         // Data Parsed
         final List<List<Float>> trainData = new ArrayList<>(parseData(new File("train_data.txt")));
@@ -46,25 +50,21 @@ public class kNN2 {
         testPairsMap.put(0, testDataGrouped.get(0));
         testPairsMap.put(1, testDataGrouped.get(1));
 
-        // Delete later
-        // System.out.println(calculateEuclideanDistances(testData, trainPairsMap));
-        // saveDistancesToFile(calculateEuclideanDistances(testData, trainPairsMap),
-        // "abc.txt");
-
         // Stores predicted labels
         List<Integer> euclideanPredictedLabels = new ArrayList<>(
-                predictLabel(calculateEuclideanDistances(testData, trainPairsMap), trainLabel));
+                predictLabel(calculateEuclideanDistances(testData, trainData), trainLabel));
         List<Integer> manhattanPredictedLabels = new ArrayList<>(
-                predictLabel(calculateManhattanDistances(testData, trainPairsMap), trainLabel));
+                predictLabel(calculateManhattanDistances(testData, trainData), trainLabel));
 
-        // System.out.println("Euclidean " + calculateAccuracy(euclideanPredictedLabels,
-        // testLabel) + "%");
-        // System.out.println("Manhattan " + calculateAccuracy(manhattanPredictedLabels,
-        // testLabel) + "%");
+        System.out.println("Euclidean: " + calculateAccuracy(euclideanPredictedLabels,
+        testLabel) + "%");
+        System.out.println("Manhattan: " + formatter.format(calculateAccuracy(manhattanPredictedLabels,
+        testLabel)) + "%");
 
-        String[] binary = generateInitialPopulation(1, testData.get(0).size());
-        System.out.println(binary[0]);
-        calculateGeneticAlgorithm(testData, trainData, new String[] {binary[0]});
+        String[] chromosomeSet = generateInitialPopulation(5, testData.get(0).size());
+
+        calculateGeneticAlgorithm(testData, trainData, testLabel, trainLabel, chromosomeSet);
+
 
     }
 
@@ -161,19 +161,17 @@ public class kNN2 {
      * @param trainSet Train Patterns
      * @return 2D List of Euclidean distances
      */
-    public static List<List<Float>> calculateEuclideanDistances(List<List<Float>> testInput,
-            Map<Integer, List<List<Float>>> trainMap) {
+    private static List<List<Float>> calculateEuclideanDistances(List<List<Float>> testInput,List<List<Float>> trainInput) {
         List<List<Float>> distances = new ArrayList<>();
+        List<Float> innerArr;
         for (int i = 0; i < testInput.size(); i++) {
-            List<Float> innerArr = new ArrayList<>();
-            for (int j = 0; j < trainMap.size(); j++) {
-                for (int k = 0; k < trainMap.get(j).size(); k++) {
-                    double sum = 0;
-                    for (int l = 0; l < testInput.get(i).size(); l++) {
-                        sum += Math.pow(testInput.get(i).get(l) - trainMap.get(j).get(k).get(l), 2);
-                    }
-                    innerArr.add((float) Math.sqrt(sum));
+            innerArr = new ArrayList<>();
+            for (int j = 0; j < trainInput.size(); j++) {
+                double sum = 0;
+                for (int k = 0; k < testInput.get(i).size(); k++) {
+                    sum += Math.pow(testInput.get(i).get(k) - trainInput.get(j).get(k), 2);
                 }
+                innerArr.add((float) Math.sqrt(sum));
             }
             distances.add(innerArr);
         }
@@ -184,23 +182,21 @@ public class kNN2 {
      * Calculates the Manhattan distance of every test pattern to all training
      * patterns
      * 
-     * @param testPatterns 2D List of test patterns
+     * @param testInput 2D List of test patterns
      * @param trainMap     Map of the train patterns
      * @return 2D List of Manhattan distances
      */
-    private static List<List<Float>> calculateManhattanDistances(List<List<Float>> testPatterns,
-            Map<Integer, List<List<Float>>> trainMap) {
+    private static List<List<Float>> calculateManhattanDistances(List<List<Float>> testInput, List<List<Float>> trainInput) {
         List<List<Float>> distances = new ArrayList<>();
-        for (int i = 0; i < testPatterns.size(); i++) {
-            List<Float> innerArr = new ArrayList<>();
-            for (int j = 0; j < trainMap.size(); j++) {
-                for (int k = 0; k < trainMap.get(j).size(); k++) {
-                    double sum = 0;
-                    for (int l = 0; l < testPatterns.get(i).size(); l++) {
-                        sum += Math.abs(testPatterns.get(i).get(l) - trainMap.get(j).get(k).get(l));
-                    }
-                    innerArr.add((float) Math.sqrt(sum));
+        List<Float> innerArr;
+        for (int i = 0; i < testInput.size(); i++) {
+            innerArr = new ArrayList<>();
+            for (int j = 0; j < trainInput.size(); j++) {
+                double sum = 0;
+                for (int k = 0; k < testInput.get(i).size(); k++) {
+                    sum += Math.abs(testInput.get(i).get(k) - trainInput.get(j).get(k));
                 }
+                innerArr.add((float)sum);
             }
             distances.add(innerArr);
         }
@@ -252,10 +248,80 @@ public class kNN2 {
         return predictions;
 
     }
+    
+    
 
     //////////////////////////////////////////////////////////
     //////////////// BINARY GENETIC ALGORITHM ////////////////
     //////////////////////////////////////////////////////////
+
+    public static Double shortcut (List<List<Float>> testData, List<List<Float>> trainData, List<Integer> testLabel, List<Integer> trainLabel) {
+        return calculateAccuracy(predictLabel(calculateEuclideanDistances(testData, trainData), trainLabel), testLabel);
+    }
+
+    /**
+     * //TODO:
+     * 
+     * @param testSet
+     * @param trainSet
+     * @param chromosomeSet
+     */
+    public static Double calculateGeneticAlgorithm(List<List<Float>> testSet, List<List<Float>> trainSet, List<Integer> testLabel, List<Integer> trainLabel, String[] chromosomeSet) {
+        final List<List<Float>> localTestSet = new ArrayList<>(testSet);
+        final List<List<Float>> localTrainSet = new ArrayList<>(trainSet);
+
+        List<List<Integer>> indices = new ArrayList<>(findIndicesofOnes(chromosomeSet));
+
+        
+
+        /////////// FILE PRINT ///////////
+
+       Double result = 0.0;
+
+        for (int i = 0; i < indices.size(); i++) {
+            List<List<Float>> modifiedTestSet = new ArrayList<>();
+            List<List<Float>> modifiedTrainSet = new ArrayList<>();
+
+            modifiedTestSet = retrieveDataFromBinaryString(indices.get(i), localTestSet); // Ready for distance measuring
+            modifiedTrainSet = retrieveDataFromBinaryString(indices.get(i), localTrainSet); // Ready for distance measuring
+
+            List<List<Float>> euclideanOfGeneration = calculateEuclideanDistances(modifiedTestSet, modifiedTrainSet);
+            List<List<Float>> manhattanOfGeneration = calculateManhattanDistances(modifiedTestSet, modifiedTrainSet);
+
+
+            try (
+            BufferedWriter writer = new BufferedWriter(new FileWriter("aa\\modTest" + i + ".txt"))) {
+            for (List<Float> innerList : modifiedTestSet) {
+                for (Float value : innerList) {
+                        writer.write(value + " ");
+                    }
+                    writer.newLine();
+                }
+                writer.newLine();
+            } catch (IOException e) {
+            e.printStackTrace();
+            }
+
+
+            try (
+            BufferedWriter writer = new BufferedWriter(new FileWriter("aa\\modTrain" + i + ".txt"))) {
+
+            for (List<Float> innerList : modifiedTrainSet) {
+                for (Float value : innerList) {
+                        writer.write(value + " ");
+                    }
+                    writer.newLine();
+                }
+                writer.newLine();
+            } catch (IOException e) {
+            e.printStackTrace();
+            }
+            result = shortcut(modifiedTestSet, modifiedTrainSet, testLabel, trainLabel);
+            System.out.println("Binary String: " + chromosomeSet[i] + " causes accuracy of " + result + "%");
+        }
+        return result;
+    }
+
 
     /**
      * Generates n-number of random binary strings of length 61 to be used as
@@ -279,16 +345,20 @@ public class kNN2 {
         }
 
         return binaryStrings;
+
     }
 
-    public static void calculateGeneticAlgorithm(List<List<Float>> testSet, List<List<Float>> trainSet, String[] chromosomeSet) {
-        final List<List<Float>> localTestSet = new ArrayList<>(testSet);
-        final List<List<Float>> localTrainSet = new ArrayList<>(trainSet);
-        List<List<List<Float>>> modifiedTestSet = new ArrayList<>();
-        List<List<List<Float>>> modifiedTrainSet = new ArrayList<>();
+
+    /**
+     * //TODO:
+     * 
+     * @param chromosomeSet
+     * @return
+     */
+    public static List<List<Integer>> findIndicesofOnes(String[] chromosomeSet) {
+
         List<List<Integer>> indices = new ArrayList<>();
 
-        // Get the indices of 1's in the binary strings
         for (String binaryString : chromosomeSet) {
             List<Integer> innerIndices = new ArrayList<>();
             for (int i = 0; i < binaryString.length(); i++) {
@@ -299,79 +369,31 @@ public class kNN2 {
             indices.add(innerIndices);
         }
 
-        List<List<Float>> retrievedTestPattern = new ArrayList<>();
-        List<List<Float>> retrievedTrainPattern = new ArrayList<>();
-
-
-        // Gets the data points at the indices of 1's for modifiedTestData
-        for (int i = 0; i < indices.size(); i++) {
-            for (int j = 0; j < localTestSet.size(); j++) {
-                List<Float> retrievedTestDataPoint = new ArrayList<>();
-                for (int indexToLookUp : indices.get(i)) {
-                    retrievedTestDataPoint.add(localTestSet.get(j).get(indexToLookUp));
-                }
-                retrievedTestPattern.add(retrievedTestDataPoint);
-            }
-            
-
-        }       
-        
-        // Gets the data points at the indices of 1's for modifiedTrainData
-        for (int i = 0; i < indices.size(); i++) {
-            for (int j = 0; j < localTrainSet.size(); j++) {
-                List<Float> retrievedTrainDataPoint = new ArrayList<>();
-                for (int indexToLookUp : indices.get(i)) {
-                    retrievedTrainDataPoint.add(localTrainSet.get(j).get(indexToLookUp));
-                }
-                retrievedTrainPattern.add(retrievedTrainDataPoint);
-            }
-            
-            
-        }       
-
-        modifiedTestSet.add(retrievedTestPattern);
-        modifiedTrainSet.add(retrievedTrainPattern);
-
-        String filePath = "modifiedTestSet.txt";
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
-            // Iterate over modifiedTestSet and write each element to the file
-            for (List<List<Float>> outerList : modifiedTestSet) {
-                for (List<Float> innerList : outerList) {
-                    for (Float value : innerList) {
-                        writer.write(value + " ");
-                    }
-                    writer.newLine();
-                }
-                writer.newLine(); // Add a newline between outer lists
-            }
-
-            System.out.println("Data has been written to the file: " + filePath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
-        String filePath1 = "modifiedTrainSet.txt";
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath1))) {
-            // Iterate over modifiedTestSet and write each element to the file
-            for (List<List<Float>> outerList : modifiedTrainSet) {
-                for (List<Float> innerList : outerList) {
-                    for (Float value : innerList) {
-                        writer.write(value + " ");
-                    }
-                    writer.newLine();
-                }
-                writer.newLine(); // Add a newline between outer lists
-            }
-
-            System.out.println("Data has been written to the file: " + filePath1);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
+        return indices;
     }
+
+    /**
+     * //TODO:
+     * 
+     * @param list
+     * @param testSet
+     * @param trainSet
+     * @return
+     */
+    public static List<List<Float>> retrieveDataFromBinaryString(List<Integer> indices, List<List<Float>> dataSet) {
+        List<List<Float>> retrievedPattern = new ArrayList<>();
+        for (int i = 0; i < dataSet.size(); i++) {
+            List<Float> retrievedDataPoint = new ArrayList<>();
+            for (int indexToLookUp : indices) { // Fix variable name from 'list' to 'indices'
+                retrievedDataPoint.add(dataSet.get(i).get(indexToLookUp));
+            }
+            retrievedPattern.add(retrievedDataPoint);
+        }
+        return retrievedPattern;
+    }
+    
+
+
+    
 
 }
