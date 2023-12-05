@@ -3,28 +3,34 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.stream.IntStream;
+import java.lang.Math;
+import java.util.random.*;
 
 public class kNN2 {
+
+    /**
+     * @author Erdem Elik
+     * @version 1.1
+     */
 
     public static void main(String[] args) throws FileNotFoundException {
 
         // Data Parsed
-        List<List<Float>> trainData = new ArrayList<>(parseData(new File("train_data.txt")));
-        List<List<Float>> testData = new ArrayList<>(parseData(new File("test_data.txt")));
+        final List<List<Float>> trainData = new ArrayList<>(parseData(new File("train_data.txt")));
+        final List<List<Float>> testData = new ArrayList<>(parseData(new File("test_data.txt")));
 
         // Label Parsed
-        List<Integer> trainLabel = new ArrayList<>(parseLabel(new File("train_label.txt")));
-        List<Integer> testLabel = new ArrayList<>(parseLabel(new File("test_label.txt")));
+        final List<Integer> trainLabel = new ArrayList<>(parseLabel(new File("train_label.txt")));
+        final List<Integer> testLabel = new ArrayList<>(parseLabel(new File("test_label.txt")));
 
         // Will contain labels and data paired
         Map<Integer, List<List<Float>>> trainPairsMap = new HashMap<>();
@@ -50,9 +56,11 @@ public class kNN2 {
         List<Integer> euclideanPredictedLabels = new ArrayList<>(predictLabel(calculateEuclideanDistances(testData, trainPairsMap), trainLabel));
         List<Integer> manhattanPredictedLabels = new ArrayList<>(predictLabel(calculateManhattanDistances(testData, trainPairsMap), trainLabel));
 
-
         System.out.println("Euclidean " + calculateAccuracy(euclideanPredictedLabels, testLabel) + "%");
         System.out.println("Manhattan " + calculateAccuracy(manhattanPredictedLabels, testLabel) + "%");
+        for (String binaryString : generateRandomBinaryStrings(2)) {
+            System.out.println(binaryString);
+        }
     }
 
     //////////////////////////////////////////////
@@ -234,12 +242,27 @@ public class kNN2 {
 
     }
 
-
+    //////////////////////////////////////////////////////////
+    //////////////// BINARY GENETIC ALGORITHM ////////////////
+    //////////////////////////////////////////////////////////
     
+    public static String[] generateRandomBinaryStrings(int n) {
+        String[] binaryStrings = new String[n];
+        Random random = new Random();
+
+        for (int i = 0; i < n; i++) {
+            StringBuilder binaryString = new StringBuilder();
+            for (int j = 0; j < 61; j++) {
+                int randomBit = random.nextInt(2);
+                binaryString.append(randomBit);
+            }
+            binaryStrings[i] = binaryString.toString();
+        }
+
+        return binaryStrings;
+    }
 
 
-
-    
     // private static void saveDistancesToFile(List<List<Float>> distances, String filename) {
     //     Path filePath = Paths.get(filename);
 
