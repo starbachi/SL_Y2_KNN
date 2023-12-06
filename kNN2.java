@@ -23,6 +23,9 @@ public class kNN2 {
      */
 
     public static void main(String[] args) throws FileNotFoundException {
+
+        NumberFormat formatter = new DecimalFormat("###.##");
+
         // Data Parsed
         final List<List<Float>> trainData = new ArrayList<>(parseData(new File("train_data.txt")));
         final List<List<Float>> testData = new ArrayList<>(parseData(new File("test_data.txt")));
@@ -47,14 +50,20 @@ public class kNN2 {
         testPairsMap.put(0, testDataGrouped.get(0));
         testPairsMap.put(1, testDataGrouped.get(1));
 
-        // System.out.println("Euclidean: " + calculateAccuracy(euclideanPredictedLabels,
-        //         testLabel) + "%");
-        // System.out.println("Manhattan: " + formatter.format(calculateAccuracy(manhattanPredictedLabels,
-        //         testLabel)) + "%");
+        // Stores predicted labels
+        List<Integer> euclideanPredictedLabels = new ArrayList<>(
+                predictLabel(calculateEuclideanDistances(testData, trainData), trainLabel));
+        List<Integer> manhattanPredictedLabels = new ArrayList<>(
+                predictLabel(calculateManhattanDistances(testData, trainData), trainLabel));
 
-        List<String> chromosomeSet = generateInitialPopulation(5, testData.get(0).size());
+        System.out.println("Euclidean: " + calculateAccuracy(euclideanPredictedLabels,
+                testLabel) + "%");
+        System.out.println("Manhattan: " + formatter.format(calculateAccuracy(manhattanPredictedLabels,
+                testLabel)) + "%");
 
-        System.out.println((calculateGeneticAlgorithm(testData, trainData, testLabel, trainLabel, chromosomeSet, 98.0)));
+        String[] chromosomeSet = generateInitialPopulation(5, testData.get(0).size());
+
+        formatter.format(calculateGeneticAlgorithm(testData, trainData, testLabel, trainLabel, chromosomeSet));
 
     }
 
@@ -177,7 +186,8 @@ public class kNN2 {
      * @param trainMap  Map of the train patterns
      * @return 2D List of Manhattan distances
      */
-    private static List<List<Float>> calculateManhattanDistances(List<List<Float>> testInput, List<List<Float>> trainInput) {
+    private static List<List<Float>> calculateManhattanDistances(List<List<Float>> testInput,
+            List<List<Float>> trainInput) {
         List<List<Float>> distances = new ArrayList<>();
         List<Float> innerArr;
         for (int i = 0; i < testInput.size(); i++) {
@@ -244,37 +254,122 @@ public class kNN2 {
     //////////////// BINARY GENETIC ALGORITHM ////////////////
     //////////////////////////////////////////////////////////
 
-    public static Double shortcutEuclidean(List<List<Float>> testData, List<List<Float>> trainData, List<Integer> testLabel,
+    public static Double shortcut(List<List<Float>> testData, List<List<Float>> trainData, List<Integer> testLabel,
             List<Integer> trainLabel) {
         return calculateAccuracy(predictLabel(calculateEuclideanDistances(testData, trainData), trainLabel), testLabel);
     }
-    public static Double shortcutManhattan(List<List<Float>> testData, List<List<Float>> trainData, List<Integer> testLabel,
-            List<Integer> trainLabel) {
-        return calculateAccuracy(predictLabel(calculateManhattanDistances(testData, trainData), trainLabel), testLabel);
+
+    /**
+     * //TODO:
+     * 
+     * @param testSet
+     * @param trainSet
+     * @param chromosomeSet
+     */
+    public static Double calculateGeneticAlgorithm(List<List<Float>> testSet, List<List<Float>> trainSet,
+            List<Integer> testLabel, List<Integer> trainLabel, String[] chromosomeSet) {
+        final List<List<Float>> localTestSet = new ArrayList<>(testSet);
+        final List<List<Float>> localTrainSet = new ArrayList<>(trainSet);
+
+        String[] newGen = new String[chromosomeSet.length];
+        for(int i = 0; i < chromosomeSet.length; i++){
+            newGen[i] = chromosomeSet[i];
+        }
+
+        List<List<Integer>> indices = new ArrayList<>(findIndicesofOnes(chromosomeSet));
+
+        
+        double generationSuccessPercentage = 0;
+        
+        while(generationSuccessPercentage < 80.0) {
+            List<Double> listOfResults = new ArrayList<>();
+            List<List<Float>> modifiedTestSet = new ArrayList<>(); 
+            List<List<Float>> modifiedTrainSet = new ArrayList<>();
+        
+            for (int i = 0; i < indices.size(); i++) {
+                
+                Double result = 0.0;
+                modifiedTestSet = retrieveDataFromBinaryString(indices.get(i), localTestSet); // Ready for distance measuring
+                modifiedTrainSet = retrieveDataFromBinaryString(indices.get(i), localTrainSet); // Ready for distance measuring
+                
+                result = shortcut(modifiedTestSet, modifiedTrainSet, testLabel, trainLabel);
+                listOfResults.add(result);
+                // System.out.println("Binary String: " + chromosomeSet[i] + " causes accuracy of " + result + "%");
+                
+            }
+            String bestChromosome = newGen[listOfResults.indexOf(Collections.max(listOfResults))];
+            String worstChromosome = newGen[listOfResults.indexOf(Collections.min(listOfResults))];
+            
+            newGen = chromosomeMutator(bestChromosome, worstChromosome, 4, 2);
+            indices = findIndicesofOnes(newGen);
+            retrieveDataFromBinaryString(trainLabel, modifiedTrainSet);
+            System.out.println("Best is " + bestChromosome + " with " + Collections.max(listOfResults) + "%");
+            generationSuccessPercentage = shortcut(modifiedTestSet, modifiedTrainSet, testLabel, trainLabel);
+        }
+
+
+
+
+        
+
+
+        return generationSuccessPercentage;
     }
+
+    public static String[] chromosomeMutator(String chromosome1, String chromosome2, int offSpringCount, int mutationCount) {
+
+        String[] nextGenerationChromosomes = new String[offSpringCount];
+        List<String> nextGenList = new ArrayList<>();
+        Random rand = new Random();
+    
+        for (int i = 0; i < offSpringCount; i++) {
+            String c1 = chromosome1;
+            String c2 = chromosome2;
+            for (int j = 0; j < mutationCount; j++) {
+                
+                int minMax = Math.min(chromosome1.length(), chromosome2.length());
+                int crossoverPointStart = rand.nextInt(5, minMax / 2);
+                int crossoverPointEnd = rand.nextInt(crossoverPointStart,minMax);
+                c1 = c1.substring(0, crossoverPointStart) + c2.substring(crossoverPointStart, crossoverPointEnd) + c1.substring(crossoverPointEnd);
+                c2 = c2.substring(0, crossoverPointStart) + c1.substring(crossoverPointStart, crossoverPointEnd) + c2.substring(crossoverPointEnd);
+            }
+                
+            nextGenList.add(c1);
+            nextGenList.add(c2);
+        }
+    
+        nextGenerationChromosomes = nextGenList.toArray(new String[0]);
+        for(String str : nextGenerationChromosomes){
+            System.out.println(str);
+        }
+
+        
+        return nextGenerationChromosomes;
+    }
+    
+
+
 
     /**
      * Generates n-number of random binary strings of length 61 to be used as
      * initial population
      * 
      * @param initialPopulation starting population of the genetic algorithm
-     * @return List of String of length initialPopulation containing binary strings of
-     *         length n
+     * @return String Array of length initialPopulation containing binary strings of
+     *         length 61
      */
-    public static List<String> generateInitialPopulation(int initialPopulation, int length) {
-        List<String> binaryStrings = new ArrayList<>();
+    public static String[] generateInitialPopulation(int initialPopulation, int length) {
+        String[] binaryStrings = new String[initialPopulation];
         Random random = new Random();
 
         for (int i = 0; i < initialPopulation; i++) {
             StringBuilder binaryString = new StringBuilder();
-
             for (int j = 0; j < length; j++) {
                 int randomBit = random.nextInt(2);
                 binaryString.append(randomBit);
             }
-            binaryStrings.add(binaryString.toString());
+            binaryStrings[i] = binaryString.toString();
         }
-
         return binaryStrings;
     }
 
@@ -284,7 +379,7 @@ public class kNN2 {
      * @param chromosomeSet
      * @return
      */
-    public static List<List<Integer>> findIndicesofOnes(List<String> chromosomeSet) {
+    public static List<List<Integer>> findIndicesofOnes(String[] chromosomeSet) {
 
         List<List<Integer>> indices = new ArrayList<>();
 
@@ -321,88 +416,51 @@ public class kNN2 {
         return retrievedPattern;
     }
 
-    /**
-     * 
-     * @param testSet
-     * @param trainSet
-     * @param testLabel
-     * @param trainLabel
-     * @param chromosomeSet
-     * @return
-     */
-    public static Double calculateGeneticAlgorithm(List<List<Float>> testSet, List<List<Float>> trainSet, List<Integer> testLabel, List<Integer> trainLabel, List<String> chromosomeSet, double accuracyThreshold) {
-        final List<List<Float>> localTestSet = new ArrayList<>(testSet);
-        final List<List<Float>> localTrainSet = new ArrayList<>(trainSet);
-        NumberFormat formatter = new DecimalFormat("###.0");
 
-        List<String> newGen = new ArrayList<>(chromosomeSet);
 
-        List<List<Integer>> indices = new ArrayList<>(findIndicesofOnes(chromosomeSet));
 
-        
-        double generationSuccessPercentage = 0;
-        
-        while(generationSuccessPercentage < accuracyThreshold) {
-            List<Double> listOfResults = new ArrayList<>();
-            List<List<Float>> modifiedTestSet; 
-            List<List<Float>> modifiedTrainSet;
-        
-            for (int i = 0; i < indices.size(); i++) {
-                modifiedTestSet = retrieveDataFromBinaryString(indices.get(i), localTestSet); // Ready for distance measuring
-                modifiedTrainSet = retrieveDataFromBinaryString(indices.get(i), localTrainSet); // Ready for distance measuring
-        
-                Double result = shortcutManhattan(modifiedTestSet, modifiedTrainSet, testLabel, trainLabel);
-                listOfResults.add(result);
-                // System.out.println("Binary String: " + chromosomeSet[i] + " causes accuracy of " + result + "%");
-            }
-        
-            int bestIndex = listOfResults.indexOf(Collections.max(listOfResults));
-            String bestChromosome = newGen.get(bestIndex);
-        
-            newGen = chromosomeMutator(bestChromosome, 4, 2);
-            indices = findIndicesofOnes(newGen);
-        
-            // Move these lines inside the loop after the loop body
-            modifiedTestSet = retrieveDataFromBinaryString(indices.get(bestIndex), localTestSet);
-            modifiedTrainSet = retrieveDataFromBinaryString(indices.get(bestIndex), localTrainSet);
-            generationSuccessPercentage = shortcutManhattan(modifiedTestSet, modifiedTrainSet, testLabel, trainLabel);
-        
-            System.out.println("Best is " + bestChromosome + " with " + formatter.format(Collections.max(listOfResults)) + "%");
-            generationSuccessPercentage = Collections.max(listOfResults);
-        }
-        return generationSuccessPercentage;
-    }
-        
 
-    /**
-     * 
-     * @param chromosome1
-     * @param chromosome2
-     * @param offSpringCount
-     * @param mutationCount
-     * @return
-     */
-    public static List<String> chromosomeMutator(String chromosome1, int offSpringCount, int mutationCount) {
 
-        List<String> nextGenerationChromosomes = new ArrayList<>();
-        Random rand = new Random();
-        
-        for (int i = 0; i < offSpringCount; i++) {
-            String c1 = chromosome1;
-            
-            for (int j = 0; j < mutationCount; j++) {
-                
-                int length = chromosome1.length();
-                int crossoverPointStart = rand.nextInt(5, length / 2);
-                int crossoverPointEnd = rand.nextInt(crossoverPointStart,length);
-                String c2 = generateInitialPopulation(1, crossoverPointEnd - crossoverPointStart).get(0);
-                c1 = c1.substring(0, crossoverPointStart) + c2 + c1.substring(crossoverPointEnd);
-            }
-                
-            nextGenerationChromosomes.add(c1);
-        }
 
-        return nextGenerationChromosomes;
-    }
-    
+
+
+
+
+
+
+
+
+
+
+
+
+            /////////// FILE PRINT ///////////
+            // try (
+            //         BufferedWriter writer = new BufferedWriter(new FileWriter("aa\\modTest" + i + ".txt"))) {
+            //     for (List<Float> innerList : modifiedTestSet) {
+            //         for (Float value : innerList) {
+            //             writer.write(value + " ");
+            //         }
+            //         writer.newLine();
+            //     }
+            //     writer.newLine();
+            // } catch (IOException e) {
+            //     e.printStackTrace();
+            // }
+
+            // try (
+            //         BufferedWriter writer = new BufferedWriter(new FileWriter("aa\\modTrain" + i + ".txt"))) {
+
+            //     for (List<Float> innerList : modifiedTrainSet) {
+            //         for (Float value : innerList) {
+            //             writer.write(value + " ");
+            //         }
+            //         writer.newLine();
+            //     }
+            //     writer.newLine();
+            // } catch (IOException e) {
+            //     e.printStackTrace();
+            // }
+            //////////////////////////////////
+
 }
