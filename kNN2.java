@@ -36,7 +36,7 @@ public class kNN2 {
         final List<Integer> trainLabel = new ArrayList<>(parseLabel(new File("train_label.txt")));
         final List<Integer> testLabel = new ArrayList<>(parseLabel(new File("test_label.txt")));
 
-        calculateGeneticAlgorithm(97, 20, 5, testSet, trainSet, testLabel, trainLabel, testSet.get(0).size());
+        calculateGeneticAlgorithm(99.5, 200, 5, testSet, trainSet, testLabel, trainLabel, testSet.get(0).size());
 
     }
 
@@ -308,8 +308,7 @@ public class kNN2 {
 
         List<String> mutatedParentSet = new ArrayList<>(parentSet);
 
-        // String elite1 = "";
-        // String elite2 = "";
+        String elite = "";
 
         // STORES THE ACCURACY OF EVERY PARENT
         List<Double> resultSet = new ArrayList<>();
@@ -361,9 +360,12 @@ public class kNN2 {
             // elite2 = mostAccurateParents.get(1);
 
             mutatedParentSet = mostAccurateParents.subList(0, mostAccurateParents.size() / 2);
-
-            System.out.println(resultSet.get(0) + " " + resultSet.get(1));
+            elite = mutatedParentSet.get(0);
+            
+            System.out.println(resultSet.get(0));
+            System.out.println("Elite: " + elite);
         }
+        System.out.println("Found best accuracy: " + resultSet.get(0) + " with parent " + mutatedParentSet.get(0));
 
     }
 
@@ -379,7 +381,7 @@ public class kNN2 {
 
         for (int i = 2; i < localParentSet.size() - 1; i += 2) {
             int length = localParentSet.get(i).length();
-            String p1 = localParentSet.get(i);
+            String p1 = localParentSet.get(0);
             String p2 = localParentSet.get(i + 1);
 
             int r1 = rand.nextInt(length);
@@ -415,11 +417,10 @@ public class kNN2 {
         List<String> mutationDone = new ArrayList<>();
 
         mutationDone.add(modifiableParentSet.get(0));
-        mutationDone.add(modifiableParentSet.get(1));
 
         Random rand = new Random();
 
-        for (int i = 2; i < modifiableParentSet.size() - 1; i += 2) {
+        for (int i = 1; i < modifiableParentSet.size() - 1; i += 2) {
 
             StringBuilder p1 = new StringBuilder(modifiableParentSet.get(0));
 
