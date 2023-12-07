@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.security.KeyStore.Entry;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -13,7 +14,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.stream.Collectors;
@@ -27,16 +27,16 @@ public class kNN2 {
      */
 
     public static void main(String[] args) throws FileNotFoundException {
+        final List<List<Float>> trainSet = new ArrayList<>(parseData(new File("train_data.txt")));
 
         // Data Parsed
-        final List<List<Float>> trainSet = new ArrayList<>(parseData(new File("train_data.txt")));
         final List<List<Float>> testSet = new ArrayList<>(parseData(new File("test_data.txt")));
 
         // Label Parsed
         final List<Integer> trainLabel = new ArrayList<>(parseLabel(new File("train_label.txt")));
         final List<Integer> testLabel = new ArrayList<>(parseLabel(new File("test_label.txt")));
 
-        calculateGeneticAlgorithm(testSet, trainSet, testLabel, trainLabel, 90, 200, testSet.get(0).size(), 30);
+        calculateGeneticAlgorithm(97, 20, 5, testSet, trainSet, testLabel, trainLabel, testSet.get(0).size());
 
     }
 
@@ -296,98 +296,107 @@ public class kNN2 {
      *                          length
      * @param accuracyThreshold Threshold to meet while iterating
      */
-    public static void calculateGeneticAlgorithm(List<List<Float>> testSet, List<List<Float>> trainSet,
-            List<Integer> testLabel,
-            List<Integer> trainLabel, double accuracyThreshold, int initialPopulationSize, int initalPopulationLength,
-            int mutationChance) {
+    public static void calculateGeneticAlgorithm(double accuracyThreshold, int initialPopulationSize,
+            int mutationChance, List<List<Float>> testSet, List<List<Float>> trainSet, List<Integer> testLabel,
+            List<Integer> trainLabel, int initalPopulationLength) {
 
         final List<List<Float>> localTestSet = new ArrayList<>(testSet);
         final List<List<Float>> localTrainSet = new ArrayList<>(trainSet);
         NumberFormat formatter = new DecimalFormat("###.0");
 
-        // Initally populated via params, later re-initated with new generations
         List<String> parentSet = generateinitialPopulation(initialPopulationSize, initalPopulationLength);
 
-        // Initally populated via params, later re-initated with new generations
-
-        Map<String, Double> accuracyMap = new HashMap<>();
-
-        // Map.Entry<String, Double> entryAtIndex0 =
-        // accuracyMap.entrySet().stream().findFirst().orElse(null);
-        // String keyAtIndex0 = entryAtIndex0.getKey();
-        // Double valueAtIndex0 = entryAtIndex0.getValue();
-
-        List<Double> accuracies = new ArrayList<>();
-        int count = 0;
         List<String> mutatedParentSet = new ArrayList<>(parentSet);
 
-        while (accuracies.isEmpty() || accuracies.get(accuracies.size() - 1) < accuracyThreshold) {
-            accuracies.clear();
-            mutatedParentSet = crossover(mutatedParentSet, mutationChance);
+        // String elite1 = "";
+        // String elite2 = "";
+
+        // STORES THE ACCURACY OF EVERY PARENT
+        List<Double> resultSet = new ArrayList<>();
+
+        while (resultSet.isEmpty() || resultSet.get(0) < accuracyThreshold) {
+
+            resultSet.clear();
+            Map<String, Double> accuracyMap = new HashMap<>();
+
+            // APPLY CROSSOVER
+            List<String> storeMutations = new ArrayList<>(crossover(mutatedParentSet));
+
+            // APPLY MUTATION
+            storeMutations = mutator(storeMutations, mutationChance);
+
+            // STORE BOTH OLD GENERATION AND NEW GENERATION (2X INITIAL POPULATION SIZE)
+            for (int i = 0; i < storeMutations.size(); i++) {
+                mutatedParentSet.add(storeMutations.get(i));
+            }
+
+            // GET THE INDICES OF MUTATED PARENTS
             List<List<Integer>> indices = new ArrayList<>(findIndicesofOnes(mutatedParentSet));
+
             for (int i = 0; i < indices.size(); i++) {
-                List<List<Float>> modifiedTrainList = new ArrayList<>(
+
+                // GET THE DATA AT THE INDICES
+                List<List<Float>> modifiedTrainSet = new ArrayList<>(
                         retrieveDataFromBinaryString(indices.get(i), localTrainSet));
-                List<List<Float>> modifiedTestList = new ArrayList<>(
+                List<List<Float>> modifiedTestSet = new ArrayList<>(
                         retrieveDataFromBinaryString(indices.get(i), localTestSet));
 
-                double result = shortcutEuclidean(modifiedTestList, modifiedTrainList, testLabel, trainLabel);
-                accuracyMap.put((mutatedParentSet).get(i), result);
-                accuracies.add(result);
-                // System.out.println(mutatedParentSet.get(i) + " " +
-                // shortcutEuclidean(modifiedTestList, modifiedTrainList, testLabel,
-                // trainLabel));
+                double result = shortcutEuclidean(modifiedTestSet, modifiedTrainSet, testLabel, trainLabel);
+
+                accuracyMap.put(mutatedParentSet.get(i), result);
+                resultSet.add(result);
             }
-            //TODO you are not iterating over the best 50 of accuracyMap FIX!!!
-            accuracyMap = cutPopInHalf(accuracyMap);
-            accuracies.sort(Comparator.naturalOrder());
-            // System.out.println(accuracies.toString());
-            count++;
-            // System.out.println("Generation: " + count + " best: "+
-            // accuracies.get(accuracies.size()) );
-            // System.out.println(accuracies.toString());
-            System.out.println(accuracies.get(accuracies.size() - 1));
 
-            accuracies = accuracies.subList(accuracies.size() / 2, accuracies.size());
-        }
-        System.out.println(getKeysByValue(accuracyMap, accuracies.get(accuracies.size() - 1)) + " with accuracy "
-                + accuracies.get(accuracies.size() - 1));
-    }
+            mutatedParentSet.clear();
+            resultSet.sort(Comparator.reverseOrder());
+            accuracyMap = accuracyMap.entrySet()
+                    .stream()
+                    .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            Map.Entry::getValue,
+                            (oldValue, newValue) -> oldValue, LinkedHashMap::new));
+            List<String> mostAccurateParents = new ArrayList<>(accuracyMap.keySet());
+            // elite1 = mostAccurateParents.get(0);
+            // elite2 = mostAccurateParents.get(1);
 
-    public static <K, V> List<K> getKeysByValue(Map<K, V> map, V value) {
-        List<K> keys = new ArrayList<>();
+            mutatedParentSet = mostAccurateParents.subList(0, mostAccurateParents.size() / 2);
 
-        for (Map.Entry<K, V> entry : map.entrySet()) {
-            if (Objects.equals(value, entry.getValue())) {
-                keys.add(entry.getKey());
-            }
+            System.out.println(resultSet.get(0) + " " + resultSet.get(1));
         }
 
-        return keys;
     }
 
-    public static List<String> crossover(List<String> parentSet, int mutationChance) {
+    public static List<String> crossover(List<String> parentSet) {
 
-        List<String> xOverDone = new ArrayList<>();
+        List<String> localParentSet = new ArrayList<>(parentSet);
+        List<String> returnList = new ArrayList<>();
+
         Random rand = new Random();
-        while (!parentSet.isEmpty()) {
-            String p1 = parentSet.get(0);
-            parentSet.remove(0);
-            String p2 = parentSet.get(0);
-            parentSet.remove(0);
 
-            int crossoverStart = rand.nextInt(0, Math.round(p1.length() / 2));
-            int crossoverEnd = rand.nextInt(crossoverStart, p1.length());
+        returnList.add(localParentSet.get(0));
+        returnList.add(localParentSet.get(1));
 
-            String newP1 = p1.substring(0, crossoverStart) + p2.substring(crossoverStart, crossoverEnd)
+        for (int i = 2; i < localParentSet.size() - 1; i += 2) {
+            int length = localParentSet.get(i).length();
+            String p1 = localParentSet.get(i);
+            String p2 = localParentSet.get(i + 1);
+
+            int r1 = rand.nextInt(length);
+            int r2 = rand.nextInt(length);
+
+            int crossoverStart = (r1 < r2) ? r1 : r2;
+            int crossoverEnd = (r1 < r2) ? r2 : r1;
+
+            String swap = p1.substring(crossoverStart, crossoverEnd);
+            p1 = p1.substring(0, crossoverStart) + p2.substring(crossoverStart, crossoverEnd)
                     + p1.substring(crossoverEnd);
-            String newP2 = p2.substring(0, crossoverStart) + p1.substring(crossoverStart, crossoverEnd)
-                    + p2.substring(crossoverEnd);
+            p2 = p2.substring(0, crossoverStart) + swap + p2.substring(crossoverEnd);
 
-            
-            xOverDone = new ArrayList<>(parentMutator(xOverDone = new ArrayList<>(List.of(newP1, newP2)), mutationChance));
+            returnList.add(p1);
+            returnList.add(p2);
         }
-        return xOverDone;
+        return returnList;
     }
 
     /**
@@ -400,58 +409,39 @@ public class kNN2 {
      * @return a list of size param offSpringCount containing new chromosomes
      *         (binary strings)
      */
-    public static List<String> parentMutator(List<String> parentSet, int mutationChance) {
+    public static List<String> mutator(List<String> parentSet, int mutationChance) {
 
-        String p1 = parentSet.get(0);
-        String p2 = parentSet.get(1);
+        List<String> modifiableParentSet = new ArrayList<>(parentSet);
+        List<String> mutationDone = new ArrayList<>();
 
-        List<String> nextGenIncludedSet = new ArrayList<>();
+        mutationDone.add(modifiableParentSet.get(0));
+        mutationDone.add(modifiableParentSet.get(1));
+
         Random rand = new Random();
 
-        StringBuilder sbp1 = new StringBuilder(p1);
-        StringBuilder sbp2 = new StringBuilder(p2);
+        for (int i = 2; i < modifiableParentSet.size() - 1; i += 2) {
 
-        for (int i = 0; i < p1.length(); i++) {
-            if (rand.nextInt(100) < mutationChance) {
-                sbp1.setCharAt(i, (p1.charAt(i) == '0') ? '1' : '0');
+            StringBuilder p1 = new StringBuilder(modifiableParentSet.get(0));
+
+            StringBuilder p2 = new StringBuilder(modifiableParentSet.get(i + 1));
+
+            for (int j = 0; j < p1.length(); j++) {
+                if (rand.nextInt(100) < mutationChance) {
+                    p1.setCharAt(j, (p1.charAt(j) == '0') ? '1' : '0');
+                }
             }
-        }
 
-        for (int i = 0; i < p2.length(); i++) {
-            if (rand.nextInt(100) < mutationChance) {
-                sbp2.setCharAt(i, (p2.charAt(i) == '0') ? '1' : '0');
+            for (int j = 0; j < p2.length(); j++) {
+                if (rand.nextInt(100) < mutationChance) {
+                    p2.setCharAt(j, (p2.charAt(j) == '0') ? '1' : '0');
+                }
             }
+
+            mutationDone.add(p1.toString());
+            mutationDone.add(p2.toString());
         }
 
-        p1 = sbp1.toString();
-        p2 = sbp2.toString();
-
-        nextGenIncludedSet = new ArrayList<>(List.of(p1, p2));
-        return nextGenIncludedSet;
+        return mutationDone;
     }
 
-
-    public static void populationIncrement(List<String> population) {
-    }
-
-    public static Map<String, Double> cutPopInHalf(Map<String, Double> populationMap) {
-        Map<String, Double> sortedAccuracyMap = populationMap.entrySet()
-                .stream()
-                .sorted(Map.Entry.comparingByValue())
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (e1, e2) -> e1,
-                        LinkedHashMap::new));
-
-        int mapSizeHalved = sortedAccuracyMap.size() / 2;
-
-        while (sortedAccuracyMap.size() > mapSizeHalved) {
-            String lastKey = sortedAccuracyMap.keySet().iterator().next();
-
-            sortedAccuracyMap.remove(lastKey);
-        }
-
-        return sortedAccuracyMap;
-    }
 }
