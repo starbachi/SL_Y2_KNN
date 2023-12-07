@@ -35,9 +35,18 @@ public class kNN2 {
         // Label Parsed
         final List<Integer> trainLabel = new ArrayList<>(parseLabel(new File("train_label.txt")));
         final List<Integer> testLabel = new ArrayList<>(parseLabel(new File("test_label.txt")));
+        
+        String a = calculateGeneticAlgorithm(50, 99.5, 200, 20, testSet, trainSet, testLabel, trainLabel, testSet.get(0).size());
+        System.out.println("Solo test accuracy is " + soloTest(testSet, trainSet,testLabel,trainLabel, a) + " for " + a);
+    }
 
-        calculateGeneticAlgorithm(99.5, 200, 5, testSet, trainSet, testLabel, trainLabel, testSet.get(0).size());
+    public static Double soloTest(List<List<Float>> testSet, List<List<Float>> trainSet, List<Integer> testLabel, List<Integer> trainLabel, String parent){
+        List<List<Float>> testList = retrieveDataFromBinaryString(findIndicesofOnes(List.of(parent)).get(0), testSet);
+        List<List<Float>> trainList = retrieveDataFromBinaryString(findIndicesofOnes(List.of(parent)).get(0), trainSet);
+        List<List<Float>> eucs = calculateEuclideanDistances(testList, trainList);
+        List<Integer> pred = predictLabel(eucs, trainLabel);
 
+        return calculateAccuracy(pred, testLabel);
     }
 
     //////////////////////////////////////////////
@@ -296,25 +305,25 @@ public class kNN2 {
      *                          length
      * @param accuracyThreshold Threshold to meet while iterating
      */
-    public static void calculateGeneticAlgorithm(double accuracyThreshold, int initialPopulationSize,
+    public static String calculateGeneticAlgorithm(int generationLimit, double accuracyThreshold, int initialPopulationSize,
             int mutationChance, List<List<Float>> testSet, List<List<Float>> trainSet, List<Integer> testLabel,
             List<Integer> trainLabel, int initalPopulationLength) {
 
         final List<List<Float>> localTestSet = new ArrayList<>(testSet);
         final List<List<Float>> localTrainSet = new ArrayList<>(trainSet);
-        NumberFormat formatter = new DecimalFormat("###.0");
 
         List<String> parentSet = generateinitialPopulation(initialPopulationSize, initalPopulationLength);
 
         List<String> mutatedParentSet = new ArrayList<>(parentSet);
 
         String elite = "";
+        int c = 0;
 
         // STORES THE ACCURACY OF EVERY PARENT
         List<Double> resultSet = new ArrayList<>();
 
-        while (resultSet.isEmpty() || resultSet.get(0) < accuracyThreshold) {
-
+        while (resultSet.isEmpty() || resultSet.get(0) < accuracyThreshold && c < generationLimit) {
+            c++;
             resultSet.clear();
             Map<String, Double> accuracyMap = new HashMap<>();
 
@@ -345,27 +354,34 @@ public class kNN2 {
                 accuracyMap.put(mutatedParentSet.get(i), result);
                 resultSet.add(result);
             }
-
+            accuracyMap.size();
             mutatedParentSet.clear();
             resultSet.sort(Comparator.reverseOrder());
-            accuracyMap = accuracyMap.entrySet()
-                    .stream()
-                    .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-                    .collect(Collectors.toMap(
-                            Map.Entry::getKey,
-                            Map.Entry::getValue,
-                            (oldValue, newValue) -> oldValue, LinkedHashMap::new));
+            accuracyMap = accuracyMap.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,(oldValue, newValue) -> oldValue, LinkedHashMap::new));
+            
             List<String> mostAccurateParents = new ArrayList<>(accuracyMap.keySet());
             // elite1 = mostAccurateParents.get(0);
             // elite2 = mostAccurateParents.get(1);
 
             mutatedParentSet = mostAccurateParents.subList(0, mostAccurateParents.size() / 2);
             elite = mutatedParentSet.get(0);
-            
-            System.out.println(resultSet.get(0));
-            System.out.println("Elite: " + elite);
+
+            // System.out.println(resultSet.get(0));
+            // System.out.println("Elite: " + elite);
+            if(mutatedParentSet.size() != initialPopulationSize && initialPopulationSize - mutatedParentSet.size() >= 2 ) {
+                List<String> addition = mutator(crossover(generateinitialPopulation(initialPopulationSize-mutatedParentSet.size(), initalPopulationLength)), mutationChance);
+                for (int i = 0; i < addition.size(); i++) {
+                    mutatedParentSet.add(addition.get(i));
+                }
+            }
+            System.out.println("Generation: " + c + " Accuracy: " + resultSet.get(0));
+            if(c >= generationLimit){
+                System.out.println("Model has failed due to generation limit. Please rerun the model.");
+            }
         }
         System.out.println("Found best accuracy: " + resultSet.get(0) + " with parent " + mutatedParentSet.get(0));
+        
+        return mutatedParentSet.get(0);
 
     }
 
@@ -444,5 +460,6 @@ public class kNN2 {
 
         return mutationDone;
     }
+
 
 }
