@@ -14,10 +14,10 @@ public class kNN2 {
      * @author Erdem Elik
      * @version 1.1
      */
-    static final String TRAIN_DATA_PATH = "train_data.txt";
-    static final String TEST_DATA_PATH = "test_data.txt";
-    static final String TRAIN_LABEL_PATH = "train_label.txt";
-    static final String TEST_LABEL_PATH = "test_label.txt";
+    static final String TRAIN_DATA_PATH = "ai-a2/train_data.txt";
+    static final String TEST_DATA_PATH = "ai-a2/test_data.txt";
+    static final String TRAIN_LABEL_PATH = "ai-a2/train_label.txt";
+    static final String TEST_LABEL_PATH = "ai-a2/test_label.txt";
     static List<List<Float>> TRAIN_DATA = new ArrayList<>();
     static List<List<Float>> TEST_DATA = new ArrayList<>();
     static List<Integer> TEST_LABEL = new ArrayList<>();
@@ -32,7 +32,7 @@ public class kNN2 {
             TEST_LABEL = parseLabel(Paths.get(TEST_LABEL_PATH).toFile());
             initalPopulationLength = TRAIN_DATA.get(0).size();
 
-            String a = calculateGeneticAlgorithm(100, 500, 5);
+            String a = calculateGeneticAlgorithm(100, 100, 5);
             System.out.println(
                     "Solo test accuracy is " + soloTest(TEST_DATA, TRAIN_DATA, TEST_LABEL, TRAIN_LABEL, a) + " for "
                             + a);
